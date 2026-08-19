@@ -1,0 +1,88 @@
+name: Frontend Continuous Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "starter/frontend/**"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: starter/frontend
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Frontend setup
+        uses: ./.github/actions/frontend-setup
+
+      - name: Run lint
+        run: npm run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Frontend setup
+        uses: ./.github/actions/frontend-setup
+
+      - name: Run tests
+        run: npm run test
+        env:
+          CI: true
+
+  build:
+    name: Build
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Frontend setup
+        uses: ./.github/actions/frontend-setup
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg REACT_APP_MOVIE_API_URL=http://localhost:5000 \
+            --tag frontend:${{ github.sha }} \
+            .
+
+  comment:
+    name: Report status on PR
+    if: always() && github.event_name == 'pull_request'
+    needs: [lint, test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment PR result
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              lint: '${{ needs.lint.result }}',
+              test: '${{ needs.test.result }}',
+              build: '${{ needs.build.result }}',
+            };
+            const emoji = (r) => (r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌');
+            const body = [
+              '### Frontend Continuous Integration',
+              `${emoji(results.lint)} Lint: \`${results.lint}\``,
+              `${emoji(results.test)} Test: \`${results.test}\``,
+              `${emoji(results.build)} Build: \`${results.build}\``,
+            ].join('\n');
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
