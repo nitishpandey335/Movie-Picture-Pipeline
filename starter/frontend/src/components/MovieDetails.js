@@ -10,7 +10,7 @@ function MovieDetail({ movie }) {
   }, [movie]);
 
   return (
-    <div>
+    <div className="movieDetails">
       <h2>{details?.movie.title}</h2>
       <p>{details?.movie.description}</p>
     </div>

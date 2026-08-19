@@ -14,7 +14,7 @@ export default function App() {
     <div className="container">
       <h1>Movie List</h1>
 
-      <MovieList onMovieClick={handleMovieClick} />
+      <MovieList onMovieClick={handleMovieClick} selectedId={selectedMovie?.id} />
 
       {selectedMovie && (
         <>

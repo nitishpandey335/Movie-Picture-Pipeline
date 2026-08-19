@@ -3,9 +3,11 @@ from flask import Flask
 from flask_cors import CORS
 
 from .movies import movies_api
+from .movies.database import init_db
 
 app = Flask(__name__)
 CORS(app)
+init_db()
 app.register_blueprint(movies_api)
 
 # Start app
